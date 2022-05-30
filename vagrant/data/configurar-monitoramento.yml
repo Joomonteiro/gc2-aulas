@@ -94,7 +94,7 @@
         dest: /usr/local/nagios/libexec
         recursive: yes
         mode: push
-      delegate_to: localhost 
+      delegate_to: servers 
     - name: Alterar propriedade e permissões
       file:
         path: /usr/local/nagios/libexec/eventhandlers/
