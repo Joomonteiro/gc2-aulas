@@ -18,3 +18,12 @@
         name: nodejs
         state: present
 
+    - name: Clonar repositório
+      ansible.builtin.git:
+        repo: https://gitlab.com/lets00/node-typescript-api-project.git
+        dest: /home/vagrant/node-repository
+        separate_git_dir: /home/vagrant/node-repository/node-typescript-api-project.git
+
+    - name: instalar dependências do projeto
+      npm:
+        path: /home/vagrant/node-repository/node-typescript-api-project

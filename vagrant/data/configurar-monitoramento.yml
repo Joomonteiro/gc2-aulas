@@ -1,0 +1,110 @@
+---
+- name: Configurar o nodeJS nos servers
+  hosts: servers
+  become: yes
+
+  tasks:
+    - name: Retirar o diretório de instalação antigo
+      file:
+        path: /tmp/nagios
+        state: absent
+      become: true
+    - name: Retirar o diretório de instalação semi-criado
+      file:
+        path: /tmp/nagios-4.4.5
+        state: absent
+      become: true
+    - name: Retirar o antigo arquivo de instalação
+      file:
+        path: /tmp/nagios.tar.gz
+        state: absent
+      become: true
+    - name: Atualizar apt
+      apt: 
+        name: '*'
+        update_cache: yes
+      become: true 
+    - name: Instalar os requisitos do nagios via apt para o ubuntu 18.04
+      apt:
+        name: 
+          - autoconf
+          - gcc
+          - libc6
+          - make
+          - wget
+          - unzip
+          - libssl-dev
+          - apache2
+          - php
+          - libapache2-mod-php*
+          - libgd-dev
+          - build-essential
+        state: latest
+        force: true
+        update_cache: true
+      become: true
+    - name: Baixar e descompactar
+      shell: cd /tmp;rm nagios*.tar.gz;wget -O nagios.tar.gz --no-check-certificate https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.4.5.tar.gz;tar -zxf nagios.tar.gz;mv nagios-4.4.5 nagios
+      become: true
+    - name: Configurar e executar makeall
+      shell: cd /tmp/nagios;./configure --with-mail=/usr/sbin/sendmail --with-httpd-conf=/etc/apache2/sites-enabled;make all;
+      become: true
+    - name: Criar usuários e grupos
+      command: chdir=/tmp/nagios make install-groups-users
+      become: true
+    - name: Criar diretório para usuários do nagios
+      file:
+        path: /home/nagios
+        state: directory
+        owner: nagios
+        group: nagios
+        mode: 0775
+      become: true
+    - name: Alterar o diretório inicial do usuário do nagios e adicionar membros do grupo
+      command: "{{ item }}"
+      with_items: 
+        - usermod --home /home/nagios nagios
+        - usermod -a -G nagios www-data
+      become: true
+    - name: make binários
+      command: chdir=/tmp/nagios {{ item }}
+      with_items:
+        - make install
+        - make install-daemoninit 
+        - make install-commandmode
+        - make install-config
+        - make install-webconf
+      become: true
+    - name: Habilitar módulos apache2
+      apache2_module: state=present name={{ item }}
+      with_items:
+        - cgi
+        - rewrite
+    - name: Restart no serviço do Apache2
+      service:
+        name: apache2
+        state: restarted
+      become: true
+    - name: Criar conta de usuário nagiosadmin (usuário apache)
+      command: htpasswd -cb /usr/local/nagios/etc/htpasswd.users nagiosadmin nagios
+      become: true
+    - name: Copiar manipuladores de eventos
+      synchronize:
+        src: /tmp/nagios/contrib/eventhandlers/
+        dest: /usr/local/nagios/libexec
+        recursive: yes
+        mode: push
+      delegate_to: localhost 
+    - name: Alterar propriedade e permissões
+      file:
+        path: /usr/local/nagios/libexec/eventhandlers/
+        owner: nagios
+        group: nagios
+        mode: u+rw,g+rw,o+r
+        recurse: true
+      become: true
+    - name: Iniciar o serviço Nagios
+      service:
+        name: nagios
+        state: restarted
+      become: true
