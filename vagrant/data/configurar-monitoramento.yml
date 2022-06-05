@@ -219,3 +219,9 @@
         - sh -c "sudo echo '# Nagios services' >> /etc/services"
         - sh -c "sudo echo 'nrpe    5666/tcp' >> /etc/services"
       become: true
+    - name: Alterar o endereço de e-mail default de notificação
+      shell: cd /;cd /usr/local/nagios/etc/objects;sudo sed -i 's+nagios@localhost+montjpedro@gmail.com+g' contacts.cfg
+      become: true
+    - name: Adicionar serviços de alerta ao e-mail
+      shell: cd /;cd /usr/local/nagios/etc/objects;sudo sed -i 's+montjpedro@gmail.com ;+montjpedro@gmail.com;service_notification_period             24x7;service_notification_options            w,u,c,r,f,s;service_notification_commands           notify-service-by-email;host_notification_period                24x7;host_notification_options               d,u,r,f,s;host_notification_commands              notify-host-by-email;+g' contacts.cfg
+      become: true
