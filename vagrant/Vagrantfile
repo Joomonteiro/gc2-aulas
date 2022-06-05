@@ -38,6 +38,10 @@ Vagrant.configure("2") do |config|
       sudo htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin 123
       sudo systemctl restart apache2.service
       sudo systemctl start nagios.service
+      sudo apt-get install -y nagios-plugins
+      sudo ln -s /usr/lib/nagios/plugins/check_* /usr/local/nagios/libexec/
+      sudo systemctl restart apache2.service
+      sudo systemctl restart nagios.service
     SHELL
   end
 
@@ -77,6 +81,10 @@ Vagrant.configure("2") do |config|
       sudo htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin 123
       sudo systemctl restart apache2.service
       sudo systemctl start nagios.service
+      sudo apt-get install -y nagios-plugins
+      sudo ln -s /usr/lib/nagios/plugins/check_* /usr/local/nagios/libexec/
+      sudo systemctl restart apache2.service
+      sudo systemctl restart nagios.service
     SHELL
   end
 
@@ -116,6 +124,10 @@ Vagrant.configure("2") do |config|
       sudo htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin 123
       sudo systemctl restart apache2.service
       sudo systemctl start nagios.service
+      sudo apt-get install -y nagios-plugins
+      sudo ln -s /usr/lib/nagios/plugins/check_* /usr/local/nagios/libexec/
+      sudo systemctl restart apache2.service
+      sudo systemctl restart nagios.service
     SHELL
   end
 

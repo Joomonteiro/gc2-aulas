@@ -89,12 +89,8 @@
       command: htpasswd -cb /usr/local/nagios/etc/htpasswd.users nagiosadmin nagios
       become: true
     - name: Copiar manipuladores de eventos
-      synchronize:
-        src: /tmp/nagios/contrib/eventhandlers/
-        dest: /usr/local/nagios/libexec
-        recursive: yes
-        mode: push
-      delegate_to: servers 
+      shell: ln -s /tmp/nagios/contrib/eventhandlers/* /usr/local/nagios/libexec/
+      become: true
     - name: Alterar propriedade e permissões
       file:
         path: /usr/local/nagios/libexec/eventhandlers/
@@ -107,4 +103,119 @@
       service:
         name: nagios
         state: restarted
+      become: true
+    - name: Instalar os requisitos do nagios via apt para o ubuntu 18.04
+      apt:
+        name: 
+          - autoconf
+        state: latest
+        force: true
+        update_cache: true
+    - name: Remover o diretório da antiga instalação
+      file:
+         path: /tmp/nagios-plugins
+         state: absent
+      become: true
+    - name: Remover o diretório de instalação semi-criada
+      file:
+        path: /tmp/nagios-plugins-release-2.3.3
+        state: absent
+      become: true
+    - name: Remover o antigo arquivo de instalação
+      file:
+        path: /tmp/nagios-plugins.tar.gz
+        state: absent
+      become: true
+    - name: Atualizar apt
+      apt: 
+        name: '*'
+        update_cache: yes
+      become: true 
+    - name: Instale os plugins Nagios Reqs
+      apt:
+        name: 
+          - autoconf
+          - gcc
+          - libc6
+          - libmcrypt-dev
+          - make
+          - wget
+          - bc
+          - gawk
+          - dc
+          - snmp
+          - libssl-dev
+          - libnet-snmp-perl
+          - gettext
+          - libldap2-dev
+          - dnsutils
+          - build-essential
+          - smbclient
+          - fping
+        state: latest
+        force: true
+        update_cache: true
+      become: true
+    - name: baixar e descompactar
+      shell: cd /; cd /tmp;rm nagios-plugin*.tar.gz;wget -O nagios-plugins.tar.gz --no-check-certificate https://github.com/nagios-plugins/nagios-plugins/archive/release-2.3.3.tar.gz;tar -zxf nagios-plugins.tar.gz;mv nagios-plugins-release-2.3.3 nagios-plugins
+      become: true
+    - name: configurar e rodar o make
+      command: chdir=/tmp/nagios-plugins {{ item }} 
+      with_items:
+        - ./tools/setup
+        - ./configure
+        - make
+        - make install
+      become: true
+    - name: Remover o diretório da antiga instalação
+      file:
+        path: /tmp/nrpe*
+        state: absent
+      become: true
+    - name: Remover o diretório de instalação semi-criada
+      file:
+        path: /tmp/nrpe-npre-4.0.2
+        state: absent
+      become: true
+    - name: Remover o antigo arquivo de instalação
+      file:
+        path: /tmp/nrpe.tar.gz
+        state: absent
+      become: true
+    - name: Atualizar apt
+      apt: 
+        name: '*'
+        update_cache: yes
+      become: true 
+    - name: Instale o NRPE Reqs
+      apt:
+        name: 
+          - autoconf
+          - gcc
+          - libc6
+          - libmcrypt-dev
+          - make
+          - wget
+          - libssl-dev
+          - openssl 
+        state: latest
+        force: true
+        update_cache: true
+      become: true
+    - name: baixar e descompactar
+      shell: cd /;cd /tmp;rm nrp*.tar.gz;wget -O nrpe.tar.gz --no-check-certificate https://github.com/NagiosEnterprises/nrpe/archive/nrpe-4.0.2.tar.gz;tar -zxf nrpe.tar.gz;mv nrpe-nrpe-4.0.2 nrpe
+      become: true
+    - name: Configure e faça o plugin check_nrpe, depois mova-o para o diretório de plugins.
+      command: chdir=/tmp/nrpe {{ item }} 
+      with_items:
+        - ./configure --enable-command-args --with-ssl=/usr/bin/openssl --with-ssl-lib=/usr/lib/x86_64-linux-gnu
+        - make check_nrpe
+        - make install-plugin
+      become: true
+    - name: Adicionar definição de serviços
+      command: "{{ item }}"
+      with_items:
+        - sh -c "echo >> /etc/services"
+        - sh -c "sudo echo '# Nagios services' >> /etc/services"
+        - sh -c "sudo echo 'nrpe    5666/tcp' >> /etc/services"
       become: true
